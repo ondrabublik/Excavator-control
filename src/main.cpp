@@ -6,7 +6,7 @@ const char* password = "password";
 
 WiFiServer server(80);
 
-// ===== L298N MOTOR CONTROL PINS =====
+// ===== H-BRIDGE 1: L298N - TRACK MOTORS =====
 // Motor 1 (levý pás)
 #define IN1 2  // Motor direction pin 1
 #define IN2 3  // Motor direction pin 2
@@ -16,6 +16,17 @@ WiFiServer server(80);
 #define IN3 4  // Motor direction pin 3
 #define IN4 6  // Motor direction pin 4
 #define ENB 9  // PWM pin for motor 2
+
+// ===== H-BRIDGE 2: L298N - ROPE & COMB MOTORS =====
+// Motor 3 (lano - rope)
+#define IN5 7  // Motor direction pin 5
+#define IN6 8  // Motor direction pin 6
+#define ENC 10 // PWM pin for motor 3 (rope)
+
+// Motor 4 (hřeben - comb)
+#define IN7 11 // Motor direction pin 7
+#define IN8 12 // Motor direction pin 8
+#define END 13 // PWM pin for motor 4 (comb)
 
 // ===== PWM RAMP SETTINGS =====
 const unsigned long PWM_RAMP_TIME = 2000;  // 2 seconds to reach 100%
@@ -30,6 +41,8 @@ struct MotorState {
 
 MotorState motor1 = {0, 0, 0, false};
 MotorState motor2 = {0, 0, 0, false};
+MotorState motor3 = {0, 0, 0, false};  // rope
+MotorState motor4 = {0, 0, 0, false};  // comb
 
 // ===== WATCHDOG =====
 unsigned long lastCmdTime = 0;
@@ -38,13 +51,21 @@ const unsigned long WATCHDOG_TIMEOUT = 300; // ms
 void setup() {
   Serial.begin(115200);
 
-  // Initialize motor pins
+  // Initialize H-Bridge 1 (track motors)
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(ENA, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
+
+  // Initialize H-Bridge 2 (rope & comb motors)
+  pinMode(IN5, OUTPUT);
+  pinMode(IN6, OUTPUT);
+  pinMode(ENC, OUTPUT);
+  pinMode(IN7, OUTPUT);
+  pinMode(IN8, OUTPUT);
+  pinMode(END, OUTPUT);
 
   WiFi.beginAP(ssid, password);
   delay(2000);
@@ -57,6 +78,7 @@ void setup() {
 
 void emergencyStop() {
   // STOP ALL MOTORS IMMEDIATELY
+  // H-Bridge 1 (tracks)
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   digitalWrite(ENA, 0);
@@ -65,10 +87,23 @@ void emergencyStop() {
   digitalWrite(IN4, LOW);
   digitalWrite(ENB, 0);
   
+  // H-Bridge 2 (rope & comb)
+  digitalWrite(IN5, LOW);
+  digitalWrite(IN6, LOW);
+  digitalWrite(ENC, 0);
+  
+  digitalWrite(IN7, LOW);
+  digitalWrite(IN8, LOW);
+  digitalWrite(END, 0);
+  
   motor1.isActive = false;
   motor2.isActive = false;
+  motor3.isActive = false;
+  motor4.isActive = false;
   motor1.currentSpeed = 0;
   motor2.currentSpeed = 0;
+  motor3.currentSpeed = 0;
+  motor4.currentSpeed = 0;
   
   Serial.println("!!! WATCHDOG STOP !!!");
 }
@@ -90,7 +125,6 @@ void updateMotorRamp() {
     if (elapsed >= PWM_RAMP_TIME) {
       motor1.currentSpeed = motor1.targetSpeed;
     } else {
-      // Linear ramp: 0 → targetSpeed over PWM_RAMP_TIME ms
       motor1.currentSpeed = (motor1.targetSpeed * elapsed) / PWM_RAMP_TIME;
     }
     analogWrite(ENA, motor1.currentSpeed);
@@ -102,10 +136,31 @@ void updateMotorRamp() {
     if (elapsed >= PWM_RAMP_TIME) {
       motor2.currentSpeed = motor2.targetSpeed;
     } else {
-      // Linear ramp: 0 → targetSpeed over PWM_RAMP_TIME ms
       motor2.currentSpeed = (motor2.targetSpeed * elapsed) / PWM_RAMP_TIME;
     }
     analogWrite(ENB, motor2.currentSpeed);
+  }
+
+  // Update motor 3 (rope)
+  if (motor3.isActive) {
+    unsigned long elapsed = now - motor3.startTime;
+    if (elapsed >= PWM_RAMP_TIME) {
+      motor3.currentSpeed = motor3.targetSpeed;
+    } else {
+      motor3.currentSpeed = (motor3.targetSpeed * elapsed) / PWM_RAMP_TIME;
+    }
+    analogWrite(ENC, motor3.currentSpeed);
+  }
+
+  // Update motor 4 (comb)
+  if (motor4.isActive) {
+    unsigned long elapsed = now - motor4.startTime;
+    if (elapsed >= PWM_RAMP_TIME) {
+      motor4.currentSpeed = motor4.targetSpeed;
+    } else {
+      motor4.currentSpeed = (motor4.targetSpeed * elapsed) / PWM_RAMP_TIME;
+    }
+    analogWrite(END, motor4.currentSpeed);
   }
 }
 
@@ -134,6 +189,28 @@ void setMotorDirection(int motorNum, int direction) {
       digitalWrite(IN3, LOW);
       digitalWrite(IN4, LOW);
     }
+  } else if (motorNum == 3) {  // rope motor
+    if (direction == 1) {
+      digitalWrite(IN5, HIGH);
+      digitalWrite(IN6, LOW);
+    } else if (direction == -1) {
+      digitalWrite(IN5, LOW);
+      digitalWrite(IN6, HIGH);
+    } else {
+      digitalWrite(IN5, LOW);
+      digitalWrite(IN6, LOW);
+    }
+  } else if (motorNum == 4) {  // comb motor
+    if (direction == 1) {
+      digitalWrite(IN7, HIGH);
+      digitalWrite(IN8, LOW);
+    } else if (direction == -1) {
+      digitalWrite(IN7, LOW);
+      digitalWrite(IN8, HIGH);
+    } else {
+      digitalWrite(IN7, LOW);
+      digitalWrite(IN8, LOW);
+    }
   }
 }
 
@@ -151,31 +228,57 @@ void startMotorRamp(int motorNum, int direction, int speed) {
     motor2.startTime = millis();
     motor2.isActive = true;
     motor2.currentSpeed = 0;
+  } else if (motorNum == 3) {  // rope
+    motor3.targetSpeed = speed;
+    motor3.startTime = millis();
+    motor3.isActive = true;
+    motor3.currentSpeed = 0;
+  } else if (motorNum == 4) {  // comb
+    motor4.targetSpeed = speed;
+    motor4.startTime = millis();
+    motor4.isActive = true;
+    motor4.currentSpeed = 0;
   }
 }
 
 void moveForward() {
-  Serial.println("Move FORWARD");
   startMotorRamp(1, 1, 255);  // Motor 1: forward, 100%
   startMotorRamp(2, 1, 255);  // Motor 2: forward, 100%
 }
 
 void moveBackward() {
-  Serial.println("Move BACK");
   startMotorRamp(1, -1, 255);  // Motor 1: backward, 100%
   startMotorRamp(2, -1, 255);  // Motor 2: backward, 100%
 }
 
 void moveLeft() {
-  Serial.println("Move LEFT");
   startMotorRamp(1, -1, 255);  // Motor 1 (levý): backward, 100%
   startMotorRamp(2, 1, 255);   // Motor 2 (pravý): forward, 100%
 }
 
 void moveRight() {
-  Serial.println("Move RIGHT");
   startMotorRamp(1, 1, 255);   // Motor 1 (levý): forward, 100%
   startMotorRamp(2, -1, 255);  // Motor 2 (pravý): backward, 100%
+}
+
+void moveRopeOut() {
+  Serial.println("Rope OUT");
+  startMotorRamp(3, 1, 255);  // Motor 3: extend rope, 100%
+}
+
+void moveRopeIn() {
+  Serial.println("Rope IN");
+  startMotorRamp(3, -1, 255);  // Motor 3: retract rope, 100%
+}
+
+void moveCombOut() {
+  Serial.println("Comb OUT");
+  startMotorRamp(4, 1, 255);  // Motor 4: extend comb, 100%
+}
+
+void moveCombIn() {
+  Serial.println("Comb IN");
+  startMotorRamp(4, -1, 255);  // Motor 4: retract comb, 100%
 }
 
 void processCommand(const String& cmd) {
@@ -184,10 +287,10 @@ void processCommand(const String& cmd) {
   if (cmd == "stop") {
     emergencyStop();
   }
-  else if (cmd == "rope_out") { /* výstup */ }
-  else if (cmd == "rope_in")  { /* výstup */ }
-  else if (cmd == "comb_out") { /* výstup */ }
-  else if (cmd == "comb_in")  { /* výstup */ }
+  else if (cmd == "rope_out") { moveRopeOut(); }
+  else if (cmd == "rope_in")  { moveRopeIn(); }
+  else if (cmd == "comb_out") { moveCombOut(); }
+  else if (cmd == "comb_in")  { moveCombIn(); }
   else if (cmd == "turn_left")  { /* výstup */ }
   else if (cmd == "turn_right") { /* výstup */ }
   else if (cmd == "forward") { moveForward(); }
