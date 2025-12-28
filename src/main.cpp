@@ -8,31 +8,31 @@ WiFiServer server(80);
 
 // ===== H-BRIDGE 1: L298N - TRACK MOTORS =====
 // Motor 1 (levý pás)
-#define IN1 2  // Motor direction pin 1
-#define IN2 3  // Motor direction pin 2
-#define ENA 5  // PWM pin for motor 1
+#define IN1 2  // forward
+#define IN2 4  // backward
+#define ENA 3  // PWM
 
 // Motor 2 (pravý pás)
-#define IN3 4  // Motor direction pin 3
-#define IN4 6  // Motor direction pin 4
-#define ENB 9  // PWM pin for motor 2
+#define IN3 5  // forward
+#define IN4 6  // backward
+#define ENB 3  // PWM
 
 // ===== H-BRIDGE 2: L298N - ROPE & COMB MOTORS =====
 // Motor 3 (lano - rope)
 #define IN5 7  // Motor direction pin 5
-#define IN6 8  // Motor direction pin 6
-#define ENC 10 // PWM pin for motor 3 (rope)
+#define IN6 8 // Motor direction pin 6
+#define ENC 3 // PWM
 
 // Motor 4 (hřeben - comb)
-#define IN7 11 // Motor direction pin 7
-#define IN8 12 // Motor direction pin 8
-#define END 13 // PWM pin for motor 4 (comb)
+#define IN7 9 // Motor direction pin 7
+#define IN8 10 // Motor direction pin 8
+#define END 3 // PWM
 
 // ===== H-BRIDGE 3: L298N - ROTATION MOTOR =====
 // Motor 5 (otáčení - turn)
-#define IN9 A0  // Motor direction pin 9
-#define IN10 A1 // Motor direction pin 10
-#define ENA2 A2 // PWM pin for motor 5 (turn)
+#define IN9 11  // Motor direction pin 9
+#define IN10 12 // Motor direction pin 10
+#define ENE 3 // PWM
 
 // ===== PWM RAMP SETTINGS =====
 const unsigned long PWM_RAMP_TIME = 2000;  // 2 seconds to reach 100%
@@ -77,7 +77,7 @@ void setup() {
   // Initialize H-Bridge 3 (turn motor)
   pinMode(IN9, OUTPUT);
   pinMode(IN10, OUTPUT);
-  pinMode(ENA2, OUTPUT);
+  pinMode(ENE, OUTPUT);
 
   WiFi.beginAP(ssid, password);
   delay(2000);
@@ -111,7 +111,7 @@ void emergencyStop() {
   // H-Bridge 3 (turn)
   digitalWrite(IN9, LOW);
   digitalWrite(IN10, LOW);
-  digitalWrite(ENA2, 0);
+  digitalWrite(ENE, 0);
   
   motor1.isActive = false;
   motor2.isActive = false;
@@ -190,7 +190,7 @@ void updateMotorRamp() {
     } else {
       motor5.currentSpeed = (motor5.targetSpeed * elapsed) / PWM_RAMP_TIME;
     }
-    analogWrite(ENA2, motor5.currentSpeed);
+    analogWrite(ENE, motor5.currentSpeed);
   }
 }
 
@@ -324,12 +324,10 @@ void moveCombIn() {
 }
 
 void turnLeft() {
-  Serial.println("Turn LEFT");
   startMotorRamp(5, -1, 255);  // Motor 5: turn left, 100%
 }
 
 void turnRight() {
-  Serial.println("Turn RIGHT");
   startMotorRamp(5, 1, 255);   // Motor 5: turn right, 100%
 }
 
