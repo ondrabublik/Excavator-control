@@ -38,6 +38,7 @@ button {
 }
 
 .orange { color: orange; }
+.blue { color: blue; }
 .green  { color: green; }
 .black  { color: black; }
 
@@ -97,7 +98,7 @@ function momentary(cmd) {
     onmousedown="startContinuous('rope_out')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('rope_out')" ontouchend="stopContinuous()">rope out</button>
 
-  <button class="orange"
+  <button class="blue"
     onmousedown="startContinuous('comb_out')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('comb_out')" ontouchend="stopContinuous()">comb out</button>
 
@@ -105,7 +106,7 @@ function momentary(cmd) {
     onmousedown="startContinuous('rope_in')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('rope_in')" ontouchend="stopContinuous()">rope in</button>
 
-  <button class="orange"
+  <button class="blue"
     onmousedown="startContinuous('comb_in')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('comb_in')" ontouchend="stopContinuous()">comb in</button>
 

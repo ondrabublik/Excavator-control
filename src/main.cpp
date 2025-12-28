@@ -28,6 +28,12 @@ WiFiServer server(80);
 #define IN8 12 // Motor direction pin 8
 #define END 13 // PWM pin for motor 4 (comb)
 
+// ===== H-BRIDGE 3: L298N - ROTATION MOTOR =====
+// Motor 5 (otáčení - turn)
+#define IN9 A0  // Motor direction pin 9
+#define IN10 A1 // Motor direction pin 10
+#define ENA2 A2 // PWM pin for motor 5 (turn)
+
 // ===== PWM RAMP SETTINGS =====
 const unsigned long PWM_RAMP_TIME = 2000;  // 2 seconds to reach 100%
 
@@ -43,6 +49,7 @@ MotorState motor1 = {0, 0, 0, false};
 MotorState motor2 = {0, 0, 0, false};
 MotorState motor3 = {0, 0, 0, false};  // rope
 MotorState motor4 = {0, 0, 0, false};  // comb
+MotorState motor5 = {0, 0, 0, false};  // turn
 
 // ===== WATCHDOG =====
 unsigned long lastCmdTime = 0;
@@ -66,6 +73,11 @@ void setup() {
   pinMode(IN7, OUTPUT);
   pinMode(IN8, OUTPUT);
   pinMode(END, OUTPUT);
+
+  // Initialize H-Bridge 3 (turn motor)
+  pinMode(IN9, OUTPUT);
+  pinMode(IN10, OUTPUT);
+  pinMode(ENA2, OUTPUT);
 
   WiFi.beginAP(ssid, password);
   delay(2000);
@@ -96,14 +108,21 @@ void emergencyStop() {
   digitalWrite(IN8, LOW);
   digitalWrite(END, 0);
   
+  // H-Bridge 3 (turn)
+  digitalWrite(IN9, LOW);
+  digitalWrite(IN10, LOW);
+  digitalWrite(ENA2, 0);
+  
   motor1.isActive = false;
   motor2.isActive = false;
   motor3.isActive = false;
   motor4.isActive = false;
+  motor5.isActive = false;
   motor1.currentSpeed = 0;
   motor2.currentSpeed = 0;
   motor3.currentSpeed = 0;
   motor4.currentSpeed = 0;
+  motor5.currentSpeed = 0;
   
   Serial.println("!!! WATCHDOG STOP !!!");
 }
@@ -162,6 +181,17 @@ void updateMotorRamp() {
     }
     analogWrite(END, motor4.currentSpeed);
   }
+
+  // Update motor 5 (turn)
+  if (motor5.isActive) {
+    unsigned long elapsed = now - motor5.startTime;
+    if (elapsed >= PWM_RAMP_TIME) {
+      motor5.currentSpeed = motor5.targetSpeed;
+    } else {
+      motor5.currentSpeed = (motor5.targetSpeed * elapsed) / PWM_RAMP_TIME;
+    }
+    analogWrite(ENA2, motor5.currentSpeed);
+  }
 }
 
 // ===== MOTOR CONTROL FUNCTIONS =====
@@ -211,6 +241,17 @@ void setMotorDirection(int motorNum, int direction) {
       digitalWrite(IN7, LOW);
       digitalWrite(IN8, LOW);
     }
+  } else if (motorNum == 5) {  // turn motor
+    if (direction == 1) {
+      digitalWrite(IN9, HIGH);
+      digitalWrite(IN10, LOW);
+    } else if (direction == -1) {
+      digitalWrite(IN9, LOW);
+      digitalWrite(IN10, HIGH);
+    } else {
+      digitalWrite(IN9, LOW);
+      digitalWrite(IN10, LOW);
+    }
   }
 }
 
@@ -238,6 +279,11 @@ void startMotorRamp(int motorNum, int direction, int speed) {
     motor4.startTime = millis();
     motor4.isActive = true;
     motor4.currentSpeed = 0;
+  } else if (motorNum == 5) {  // turn
+    motor5.targetSpeed = speed;
+    motor5.startTime = millis();
+    motor5.isActive = true;
+    motor5.currentSpeed = 0;
   }
 }
 
@@ -262,23 +308,29 @@ void moveRight() {
 }
 
 void moveRopeOut() {
-  Serial.println("Rope OUT");
   startMotorRamp(3, 1, 255);  // Motor 3: extend rope, 100%
 }
 
 void moveRopeIn() {
-  Serial.println("Rope IN");
   startMotorRamp(3, -1, 255);  // Motor 3: retract rope, 100%
 }
 
 void moveCombOut() {
-  Serial.println("Comb OUT");
   startMotorRamp(4, 1, 255);  // Motor 4: extend comb, 100%
 }
 
 void moveCombIn() {
-  Serial.println("Comb IN");
   startMotorRamp(4, -1, 255);  // Motor 4: retract comb, 100%
+}
+
+void turnLeft() {
+  Serial.println("Turn LEFT");
+  startMotorRamp(5, -1, 255);  // Motor 5: turn left, 100%
+}
+
+void turnRight() {
+  Serial.println("Turn RIGHT");
+  startMotorRamp(5, 1, 255);   // Motor 5: turn right, 100%
 }
 
 void processCommand(const String& cmd) {
@@ -291,8 +343,8 @@ void processCommand(const String& cmd) {
   else if (cmd == "rope_in")  { moveRopeIn(); }
   else if (cmd == "comb_out") { moveCombOut(); }
   else if (cmd == "comb_in")  { moveCombIn(); }
-  else if (cmd == "turn_left")  { /* výstup */ }
-  else if (cmd == "turn_right") { /* výstup */ }
+  else if (cmd == "turn_left")  { turnLeft(); }
+  else if (cmd == "turn_right") { turnRight(); }
   else if (cmd == "forward") { moveForward(); }
   else if (cmd == "back")    { moveBackward(); }
   else if (cmd == "left")    { moveLeft(); }
