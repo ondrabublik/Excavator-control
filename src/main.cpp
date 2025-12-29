@@ -58,6 +58,15 @@ MotorState motor5 = {0, 0, 0, false};  // turn
 unsigned long lastCmdTime = 0;
 const unsigned long WATCHDOG_TIMEOUT = 400; // ms
 
+// ===== ANALOG INPUTS =====
+int analogValueA0 = 0;  // Pin A0 - horizontal
+int analogValueA1 = 0;  // Pin A1 - vertical
+
+void readAnalogInputs() {
+  analogValueA0 = analogRead(A0);
+  analogValueA1 = analogRead(A1);
+}
+
 void emergencyStop() {
   // STOP ALL MOTORS IMMEDIATELY
   // H-Bridge 1 (tracks)
@@ -450,4 +459,5 @@ void loop() {
   handleClient();
   watchdogCheck();
   updateMotorRamp();  // Continuously update motor PWM ramps
+  readAnalogInputs();  // Read A0 and A1
 }
