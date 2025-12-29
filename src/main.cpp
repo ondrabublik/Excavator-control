@@ -56,7 +56,7 @@ MotorState motor5 = {0, 0, 0, false};  // turn
 
 // ===== WATCHDOG =====
 unsigned long lastCmdTime = 0;
-const unsigned long WATCHDOG_TIMEOUT = 300; // ms
+const unsigned long WATCHDOG_TIMEOUT = 400; // ms
 
 void emergencyStop() {
   // STOP ALL MOTORS IMMEDIATELY
@@ -260,45 +260,75 @@ void startMotorRamp(int motorNum, int direction, int speed) {
 void moveForward() {
   startMotorRamp(1, 1, 255);  // Motor 1: forward, 100%
   startMotorRamp(2, 1, 255);  // Motor 2: forward, 100%
+  matrix.clear();
+  matrix.renderBitmap(FORWARD, MAX_Y, MAX_X);
 }
 
 void moveBackward() {
   startMotorRamp(1, -1, 255);  // Motor 1: backward, 100%
   startMotorRamp(2, -1, 255);  // Motor 2: backward, 100%
+  matrix.clear();
+  matrix.renderBitmap(BACKWARD, MAX_Y, MAX_X);
 }
 
 void moveLeft() {
   startMotorRamp(1, -1, 255);  // Motor 1 (levý): backward, 100%
   startMotorRamp(2, 1, 255);   // Motor 2 (pravý): forward, 100%
+  matrix.clear();
+  matrix.renderBitmap(LEFT, MAX_Y, MAX_X);
 }
 
 void moveRight() {
   startMotorRamp(1, 1, 255);   // Motor 1 (levý): forward, 100%
   startMotorRamp(2, -1, 255);  // Motor 2 (pravý): backward, 100%
+  matrix.clear();
+  matrix.renderBitmap(RIGHT, MAX_Y, MAX_X);
 }
 
 void moveRopeOut() {
   startMotorRamp(3, 1, 255);  // Motor 3: extend rope, 100%
+  matrix.clear();
+  matrix.renderBitmap(ROPE_OUT, MAX_Y, MAX_X);
 }
 
 void moveRopeIn() {
   startMotorRamp(3, -1, 255);  // Motor 3: retract rope, 100%
+  matrix.clear();
+  matrix.renderBitmap(ROPE_IN, MAX_Y, MAX_X);
 }
 
 void moveCombOut() {
   startMotorRamp(4, 1, 255);  // Motor 4: extend comb, 100%
+  matrix.clear();
+  matrix.renderBitmap(COMB_OUT, MAX_Y, MAX_X);
 }
 
 void moveCombIn() {
   startMotorRamp(4, -1, 255);  // Motor 4: retract comb, 100%
+  matrix.clear();
+  matrix.renderBitmap(COMB_IN, MAX_Y, MAX_X);
 }
 
 void turnLeft() {
   startMotorRamp(5, -1, 255);  // Motor 5: turn left, 100%
+  matrix.clear();
+  matrix.renderBitmap(TURN_LEFT, MAX_Y, MAX_X);
 }
 
 void turnRight() {
   startMotorRamp(5, 1, 255);   // Motor 5: turn right, 100%
+  matrix.clear();
+  matrix.renderBitmap(TURN_RIGHT, MAX_Y, MAX_X);
+}
+
+void spoon_function(int open) {
+  if (open == 1) {
+    matrix.clear();
+    matrix.renderBitmap(SO, MAX_Y, MAX_X);
+  } else {
+    matrix.clear();
+    matrix.renderBitmap(SC, MAX_Y, MAX_X);
+  }
 }
 
 void L1_function() {
@@ -320,6 +350,7 @@ void processCommand(const String& cmd) {
   Serial.println(cmd);
 
   if (cmd == "stop") {
+    matrix.clear();
     emergencyStop();
   }
   else if (cmd == "rope_out") { moveRopeOut(); }
@@ -332,8 +363,8 @@ void processCommand(const String& cmd) {
   else if (cmd == "back")    { moveBackward(); }
   else if (cmd == "left")    { moveLeft(); }
   else if (cmd == "right")   { moveRight(); }
-  else if (cmd == "spoon_open")  { /* výstup */ }
-  else if (cmd == "spoon_close") { /* výstup */ }
+  else if (cmd == "spoon_open")  { spoon_function(1); }
+  else if (cmd == "spoon_close") { spoon_function(0); }
   else if (cmd == "L1") { L1_function(); }
   else if (cmd == "L2") { L2_function(); }
   else if (cmd == "L3") { L3_function(); }

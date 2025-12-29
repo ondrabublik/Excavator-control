@@ -80,7 +80,7 @@ button:active {
 </style>
 
 <script>
-const INTERVAL_MS = 300;
+const INTERVAL_MS = 200;
 
 let timer = null;
 
@@ -96,6 +96,9 @@ function startContinuous(cmd) {
 }
 
 function stopContinuous() {
+if (!timer) return;
+  clearInterval(timer);
+  timer = null;
   fetch("/cmd?c=stop");
 }
 
