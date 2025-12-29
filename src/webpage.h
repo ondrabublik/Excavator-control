@@ -80,7 +80,7 @@ button:active {
 </style>
 
 <script>
-const INTERVAL_MS = 100;
+const INTERVAL_MS = 300;
 
 let timer = null;
 
@@ -111,27 +111,21 @@ function momentary(cmd) {
 
 <div class="container">
   <button class="orange"
-    onmousedown="startContinuous('rope_out')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('rope_out')" ontouchend="stopContinuous()">rope out</button>
 
   <button class="blue"
-    onmousedown="startContinuous('comb_out')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('comb_out')" ontouchend="stopContinuous()">comb out</button>
 
   <button class="orange"
-    onmousedown="startContinuous('rope_in')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('rope_in')" ontouchend="stopContinuous()">rope in</button>
 
   <button class="blue"
-    onmousedown="startContinuous('comb_in')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('comb_in')" ontouchend="stopContinuous()">comb in</button>
 
   <button class="green"
-    onmousedown="startContinuous('turn_left')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('turn_left')" ontouchend="stopContinuous()">turn left</button>
 
   <button class="green"
-    onmousedown="startContinuous('turn_right')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('turn_right')" ontouchend="stopContinuous()">turn right</button>
 
   <button class="black" onclick="momentary('spoon_open')">spoon open</button>
@@ -141,22 +135,18 @@ function momentary(cmd) {
 <div class="arrows">
   <div></div>
   <button class="arrow-btn"
-    onmousedown="startContinuous('forward')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('forward')" ontouchend="stopContinuous()">&#8593;</button>
   <div></div>
 
   <button class="arrow-btn"
-    onmousedown="startContinuous('left')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('left')" ontouchend="stopContinuous()">&#8592;</button>
   <div></div>
 
   <button class="arrow-btn"
-    onmousedown="startContinuous('right')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('right')" ontouchend="stopContinuous()">&#8594;</button>
 
   <div></div>
   <button class="arrow-btn"
-    onmousedown="startContinuous('back')" onmouseup="stopContinuous()"
     ontouchstart="startContinuous('back')" ontouchend="stopContinuous()">&#8595;</button>
   <div></div>
 </div>
