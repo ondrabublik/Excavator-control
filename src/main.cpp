@@ -1,10 +1,13 @@
 #include <WiFiS3.h>
 #include "webpage.h"
+#include "led.h"
+#include "Arduino_LED_Matrix.h"
 
 const char* ssid = "excavator";
 const char* password = "password";
 
 WiFiServer server(80);
+ArduinoLEDMatrix matrix;
 
 // ===== H-BRIDGE 1: L298N - TRACK MOTORS =====
 // Motor 1 (levý pás)
@@ -54,39 +57,6 @@ MotorState motor5 = {0, 0, 0, false};  // turn
 // ===== WATCHDOG =====
 unsigned long lastCmdTime = 0;
 const unsigned long WATCHDOG_TIMEOUT = 300; // ms
-
-void setup() {
-  Serial.begin(115200);
-
-  // Initialize H-Bridge 1 (track motors)
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(ENA, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
-  pinMode(ENB, OUTPUT);
-
-  // Initialize H-Bridge 2 (rope & comb motors)
-  pinMode(IN5, OUTPUT);
-  pinMode(IN6, OUTPUT);
-  pinMode(ENC, OUTPUT);
-  pinMode(IN7, OUTPUT);
-  pinMode(IN8, OUTPUT);
-  pinMode(END, OUTPUT);
-
-  // Initialize H-Bridge 3 (turn motor)
-  pinMode(IN9, OUTPUT);
-  pinMode(IN10, OUTPUT);
-  pinMode(ENE, OUTPUT);
-
-  WiFi.beginAP(ssid, password);
-  delay(2000);
-
-  Serial.print("AP IP: ");
-  Serial.println(WiFi.localIP());
-
-  server.begin();
-}
 
 void emergencyStop() {
   // STOP ALL MOTORS IMMEDIATELY
@@ -331,6 +301,21 @@ void turnRight() {
   startMotorRamp(5, 1, 255);   // Motor 5: turn right, 100%
 }
 
+void L1_function() {
+  matrix.clear();
+  matrix.renderBitmap(L1, MAX_Y, MAX_X);
+}
+
+void L2_function() {
+  matrix.clear();
+  matrix.renderBitmap(L2, MAX_Y, MAX_X);
+}
+
+void L3_function() {
+  matrix.clear();
+  matrix.renderBitmap(L3, MAX_Y, MAX_X);
+}
+
 void processCommand(const String& cmd) {
   Serial.println(cmd);
 
@@ -349,9 +334,9 @@ void processCommand(const String& cmd) {
   else if (cmd == "right")   { moveRight(); }
   else if (cmd == "spoon_open")  { /* výstup */ }
   else if (cmd == "spoon_close") { /* výstup */ }
-  else if (cmd == "L1") { /* světlo */ }
-  else if (cmd == "L2") { /* světlo */ }
-  else if (cmd == "L3") { /* světlo */ }
+  else if (cmd == "L1") { L1_function(); }
+  else if (cmd == "L2") { L2_function(); }
+  else if (cmd == "L3") { L3_function(); }
 }
 
 void handleCommand(const String& req) {
@@ -392,6 +377,42 @@ void handleClient() {
   }
 
   client.stop();
+}
+
+void setup() {
+  matrix.begin();
+  matrix.clear();
+
+  Serial.begin(115200);
+
+  // Initialize H-Bridge 1 (track motors)
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(ENB, OUTPUT);
+
+  // Initialize H-Bridge 2 (rope & comb motors)
+  pinMode(IN5, OUTPUT);
+  pinMode(IN6, OUTPUT);
+  pinMode(ENC, OUTPUT);
+  pinMode(IN7, OUTPUT);
+  pinMode(IN8, OUTPUT);
+  pinMode(END, OUTPUT);
+
+  // Initialize H-Bridge 3 (turn motor)
+  pinMode(IN9, OUTPUT);
+  pinMode(IN10, OUTPUT);
+  pinMode(ENE, OUTPUT);
+
+  WiFi.beginAP(ssid, password);
+  delay(2000);
+
+  Serial.print("AP IP: ");
+  Serial.println(WiFi.localIP());
+
+  server.begin();
 }
 
 void loop() {

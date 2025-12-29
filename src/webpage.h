@@ -15,9 +15,19 @@ const char webpage[] PROGMEM = R"rawliteral(
 }
 
 body {
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   text-align: center;
-  background: #f2f2f2;
+  background: white;
+  padding: 15px;
+  margin: 0;
+  color: #333;
+}
+
+h2 {
+  color: #333;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  font-size: 28px;
 }
 
 .container {
@@ -31,10 +41,19 @@ body {
 button {
   padding: 15px;
   font-size: 18px;
-  border: 3px solid black;
+  border: none;
+  border-radius: 10px;
   background: white;
   cursor: pointer;
   touch-action: none;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: all 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
 .orange { color: orange; }
@@ -77,9 +96,6 @@ function startContinuous(cmd) {
 }
 
 function stopContinuous() {
-  if (!timer) return;
-  clearInterval(timer);
-  timer = null;
   fetch("/cmd?c=stop");
 }
 
