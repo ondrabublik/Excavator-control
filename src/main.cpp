@@ -2,12 +2,19 @@
 #include "webpage.h"
 #include "led.h"
 #include "Arduino_LED_Matrix.h"
+#include <Servo.h>
 
 const char* ssid = "excavator";
 const char* password = "password";
 
 WiFiServer server(80);
 ArduinoLEDMatrix matrix;
+
+// ===== SPOON SERVO =====
+#define SPOON_SERVO_PIN 13
+const int SPOON_OPEN_POS = 30;   // degrees for open spoon (adjust as needed)
+const int SPOON_CLOSED_POS = 120; // degrees for closed spoon (adjust as needed)
+Servo spoonServo;
 
 // ===== H-BRIDGE 1: L298N - TRACK MOTORS =====
 // Motor 1 (levý pás)
@@ -59,12 +66,12 @@ unsigned long lastCmdTime = 0;
 const unsigned long WATCHDOG_TIMEOUT = 400; // ms
 
 // ===== ANALOG INPUTS =====
-int analogValueA0 = 0;  // Pin A0 - horizontal
-int analogValueA1 = 0;  // Pin A1 - vertical
+int horizontalAngleA0 = 0;  // Pin A0 - horizontal
+int verticalAngleA1 = 0;  // Pin A1 - vertical
 
 void readAnalogInputs() {
-  analogValueA0 = analogRead(A0);
-  analogValueA1 = analogRead(A1);
+  horizontalAngleA0 = analogRead(A0);
+  verticalAngleA1 = analogRead(A1);
 }
 
 void emergencyStop() {
@@ -332,9 +339,11 @@ void turnRight() {
 
 void spoon_function(int open) {
   if (open == 1) {
+    spoonServo.write(SPOON_OPEN_POS);
     matrix.clear();
     matrix.renderBitmap(SO, MAX_Y, MAX_X);
   } else {
+    spoonServo.write(SPOON_CLOSED_POS);
     matrix.clear();
     matrix.renderBitmap(SC, MAX_Y, MAX_X);
   }
@@ -445,6 +454,10 @@ void setup() {
   pinMode(IN9, OUTPUT);
   pinMode(IN10, OUTPUT);
   pinMode(ENE, OUTPUT);
+
+  // Initialize spoon servo
+  spoonServo.attach(SPOON_SERVO_PIN);
+  spoonServo.write(SPOON_CLOSED_POS); // start closed
 
   WiFi.beginAP(ssid, password);
   delay(2000);
