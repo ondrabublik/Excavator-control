@@ -80,7 +80,7 @@ button:active {
 </style>
 
 <script>
-const INTERVAL_MS = 200;
+const INTERVAL_MS = 280;
 
 let timer = null;
 

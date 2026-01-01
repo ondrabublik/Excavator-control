@@ -45,7 +45,7 @@ Servo spoonServo;
 #define ENE 3 // PWM
 
 // ===== PWM RAMP SETTINGS =====
-const unsigned long PWM_RAMP_TIME = 2000;  // 2 seconds to reach 100%
+const unsigned long PWM_RAMP_TIME = 600;  // 2 seconds to reach 100%
 
 // ===== MOTOR STATE =====
 struct MotorState {
@@ -245,27 +245,27 @@ void startMotorRamp(int motorNum, int direction, int speed) {
   // direction: 1=forward, -1=backward
   setMotorDirection(motorNum, direction);
   
-  if (motorNum == 1) {
+  if (motorNum == 1 && !motor1.isActive) {
     motor1.targetSpeed = speed;
     motor1.startTime = millis();
     motor1.isActive = true;
     motor1.currentSpeed = 0;
-  } else if (motorNum == 2) {
+  } else if (motorNum == 2 && !motor2.isActive) {
     motor2.targetSpeed = speed;
     motor2.startTime = millis();
     motor2.isActive = true;
     motor2.currentSpeed = 0;
-  } else if (motorNum == 3) {  // rope
+  } else if (motorNum == 3 && !motor3.isActive) {  // rope
     motor3.targetSpeed = speed;
     motor3.startTime = millis();
     motor3.isActive = true;
     motor3.currentSpeed = 0;
-  } else if (motorNum == 4) {  // comb
+  } else if (motorNum == 4 && !motor4.isActive) {  // comb
     motor4.targetSpeed = speed;
     motor4.startTime = millis();
     motor4.isActive = true;
     motor4.currentSpeed = 0;
-  } else if (motorNum == 5) {  // turn
+  } else if (motorNum == 5 && !motor5.isActive) {  // turn
     motor5.targetSpeed = speed;
     motor5.startTime = millis();
     motor5.isActive = true;
