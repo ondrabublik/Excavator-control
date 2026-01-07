@@ -12,42 +12,21 @@ ArduinoLEDMatrix matrix;
 
 // ===== SPOON SERVO =====
 #define SPOON_SERVO_PIN 13
-const int SPOON_OPEN_POS = 30;   // degrees for open spoon (adjust as needed)
-const int SPOON_CLOSED_POS = 120; // degrees for closed spoon (adjust as needed)
+const int SPOON_OPEN_POS = 80;   // degrees for open spoon (adjust as needed)
+const int SPOON_CLOSED_POS = 10; // degrees for closed spoon (adjust as needed)
 Servo spoonServo;
 
-// ===== H-BRIDGE 1: L298N - TRACK MOTORS =====
-// Motor 1 (levý pás)
-#define IN1 2  // forward
-#define IN2 4  // backward
-#define ENA 3  // PWM
-
-// Motor 2 (pravý pás)
-#define IN3 5  // forward
-#define IN4 6  // backward
-#define ENB 3  // PWM
-
-// ===== H-BRIDGE 2: L298N - ROPE & COMB MOTORS =====
-// Motor 3 (lano - rope)
-#define IN5 7  // Motor direction pin 5
-#define IN6 8 // Motor direction pin 6
-#define ENC 3 // PWM
-
-// Motor 4 (hřeben - comb)
-#define IN7 9 // Motor direction pin 7
-#define IN8 10 // Motor direction pin 8
-#define END 3 // PWM
-
-// ===== H-BRIDGE 3: L298N - ROTATION MOTOR =====
-// Motor 5 (otáčení - turn)
-#define IN9 11  // Motor direction pin 9
-#define IN10 12 // Motor direction pin 10
-#define ENE 3 // PWM
-
 // ===== PWM RAMP SETTINGS =====
-const unsigned long PWM_RAMP_TIME = 600;  // 2 seconds to reach 100%
+const unsigned long PWM_RAMP_TIME = 600;  // ms to reach 100%
+const int MAX_PWM = 255;  // Maximum PWM value
 
-// ===== MOTOR STATE =====
+// ===== MOTOR CONFIGURATION =====
+struct MotorConfig {
+  int pinForward;   // IN1/IN3/IN5/IN7/IN9
+  int pinBackward;  // IN2/IN4/IN6/IN8/IN10
+  int pinPWM;       // ENA/ENB/ENC/END/ENE
+};
+
 struct MotorState {
   unsigned long startTime;
   int targetSpeed;  // 0-255
@@ -55,11 +34,23 @@ struct MotorState {
   bool isActive;
 };
 
-MotorState motor1 = {0, 0, 0, false};
-MotorState motor2 = {0, 0, 0, false};
-MotorState motor3 = {0, 0, 0, false};  // rope
-MotorState motor4 = {0, 0, 0, false};  // comb
-MotorState motor5 = {0, 0, 0, false};  // turn
+// Motor pin configurations
+const MotorConfig MOTOR_CONFIGS[5] = {
+  {2, 4, 3},   // Motor 1 (levý pás) - IN1, IN2, ENA
+  {5, 6, 3},   // Motor 2 (pravý pás) - IN3, IN4, ENB
+  {7, 8, 3},   // Motor 3 (lano - rope) - IN5, IN6, ENC
+  {9, 10, 3},  // Motor 4 (hřeben - comb) - IN7, IN8, END
+  {11, 12, 3}  // Motor 5 (otáčení - turn) - IN9, IN10, ENE
+};
+
+// Motor states
+MotorState motors[5] = {
+  {0, 0, 0, false},  // Motor 1
+  {0, 0, 0, false},  // Motor 2
+  {0, 0, 0, false},  // Motor 3 (rope)
+  {0, 0, 0, false},  // Motor 4 (comb)
+  {0, 0, 0, false}   // Motor 5 (turn)
+};
 
 // ===== WATCHDOG =====
 unsigned long lastCmdTime = 0;
@@ -76,39 +67,15 @@ void readAnalogInputs() {
 
 void emergencyStop() {
   // STOP ALL MOTORS IMMEDIATELY
-  // H-Bridge 1 (tracks)
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(ENA, 0);
-  
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
-  digitalWrite(ENB, 0);
-  
-  // H-Bridge 2 (rope & comb)
-  digitalWrite(IN5, LOW);
-  digitalWrite(IN6, LOW);
-  digitalWrite(ENC, 0);
-  
-  digitalWrite(IN7, LOW);
-  digitalWrite(IN8, LOW);
-  digitalWrite(END, 0);
-  
-  // H-Bridge 3 (turn)
-  digitalWrite(IN9, LOW);
-  digitalWrite(IN10, LOW);
-  digitalWrite(ENE, 0);
-  
-  motor1.isActive = false;
-  motor2.isActive = false;
-  motor3.isActive = false;
-  motor4.isActive = false;
-  motor5.isActive = false;
-  motor1.currentSpeed = 0;
-  motor2.currentSpeed = 0;
-  motor3.currentSpeed = 0;
-  motor4.currentSpeed = 0;
-  motor5.currentSpeed = 0;
+  for (int i = 0; i < 5; i++) {
+    const MotorConfig& config = MOTOR_CONFIGS[i];
+    digitalWrite(config.pinForward, LOW);
+    digitalWrite(config.pinBackward, LOW);
+    analogWrite(config.pinPWM, 0);
+    
+    motors[i].isActive = false;
+    motors[i].currentSpeed = 0;
+  }
   
   Serial.println("!!! WATCHDOG STOP !!!");
 }
@@ -124,244 +91,139 @@ void watchdogCheck() {
 void updateMotorRamp() {
   unsigned long now = millis();
 
-  // Update motor 1
-  if (motor1.isActive) {
-    unsigned long elapsed = now - motor1.startTime;
-    if (elapsed >= PWM_RAMP_TIME) {
-      motor1.currentSpeed = motor1.targetSpeed;
-    } else {
-      motor1.currentSpeed = (motor1.targetSpeed * elapsed) / PWM_RAMP_TIME;
+  for (int i = 0; i < 5; i++) {
+    MotorState& motor = motors[i];
+    if (motor.isActive) {
+      unsigned long elapsed = now - motor.startTime;
+      if (elapsed >= PWM_RAMP_TIME) {
+        motor.currentSpeed = motor.targetSpeed;
+      } else {
+        motor.currentSpeed = (motor.targetSpeed * elapsed) / PWM_RAMP_TIME;
+      }
+      analogWrite(MOTOR_CONFIGS[i].pinPWM, motor.currentSpeed);
     }
-    analogWrite(ENA, motor1.currentSpeed);
-  }
-
-  // Update motor 2
-  if (motor2.isActive) {
-    unsigned long elapsed = now - motor2.startTime;
-    if (elapsed >= PWM_RAMP_TIME) {
-      motor2.currentSpeed = motor2.targetSpeed;
-    } else {
-      motor2.currentSpeed = (motor2.targetSpeed * elapsed) / PWM_RAMP_TIME;
-    }
-    analogWrite(ENB, motor2.currentSpeed);
-  }
-
-  // Update motor 3 (rope)
-  if (motor3.isActive) {
-    unsigned long elapsed = now - motor3.startTime;
-    if (elapsed >= PWM_RAMP_TIME) {
-      motor3.currentSpeed = motor3.targetSpeed;
-    } else {
-      motor3.currentSpeed = (motor3.targetSpeed * elapsed) / PWM_RAMP_TIME;
-    }
-    analogWrite(ENC, motor3.currentSpeed);
-  }
-
-  // Update motor 4 (comb)
-  if (motor4.isActive) {
-    unsigned long elapsed = now - motor4.startTime;
-    if (elapsed >= PWM_RAMP_TIME) {
-      motor4.currentSpeed = motor4.targetSpeed;
-    } else {
-      motor4.currentSpeed = (motor4.targetSpeed * elapsed) / PWM_RAMP_TIME;
-    }
-    analogWrite(END, motor4.currentSpeed);
-  }
-
-  // Update motor 5 (turn)
-  if (motor5.isActive) {
-    unsigned long elapsed = now - motor5.startTime;
-    if (elapsed >= PWM_RAMP_TIME) {
-      motor5.currentSpeed = motor5.targetSpeed;
-    } else {
-      motor5.currentSpeed = (motor5.targetSpeed * elapsed) / PWM_RAMP_TIME;
-    }
-    analogWrite(ENE, motor5.currentSpeed);
   }
 }
 
 // ===== MOTOR CONTROL FUNCTIONS =====
 void setMotorDirection(int motorNum, int direction) {
   // direction: 1=forward, -1=backward, 0=stop
-  if (motorNum == 1) {
-    if (direction == 1) {
-      digitalWrite(IN1, HIGH);
-      digitalWrite(IN2, LOW);
-    } else if (direction == -1) {
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, HIGH);
-    } else {
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, LOW);
-    }
-  } else if (motorNum == 2) {
-    if (direction == 1) {
-      digitalWrite(IN3, HIGH);
-      digitalWrite(IN4, LOW);
-    } else if (direction == -1) {
-      digitalWrite(IN3, LOW);
-      digitalWrite(IN4, HIGH);
-    } else {
-      digitalWrite(IN3, LOW);
-      digitalWrite(IN4, LOW);
-    }
-  } else if (motorNum == 3) {  // rope motor
-    if (direction == 1) {
-      digitalWrite(IN5, HIGH);
-      digitalWrite(IN6, LOW);
-    } else if (direction == -1) {
-      digitalWrite(IN5, LOW);
-      digitalWrite(IN6, HIGH);
-    } else {
-      digitalWrite(IN5, LOW);
-      digitalWrite(IN6, LOW);
-    }
-  } else if (motorNum == 4) {  // comb motor
-    if (direction == 1) {
-      digitalWrite(IN7, HIGH);
-      digitalWrite(IN8, LOW);
-    } else if (direction == -1) {
-      digitalWrite(IN7, LOW);
-      digitalWrite(IN8, HIGH);
-    } else {
-      digitalWrite(IN7, LOW);
-      digitalWrite(IN8, LOW);
-    }
-  } else if (motorNum == 5) {  // turn motor
-    if (direction == 1) {
-      digitalWrite(IN9, HIGH);
-      digitalWrite(IN10, LOW);
-    } else if (direction == -1) {
-      digitalWrite(IN9, LOW);
-      digitalWrite(IN10, HIGH);
-    } else {
-      digitalWrite(IN9, LOW);
-      digitalWrite(IN10, LOW);
-    }
+  // motorNum: 0-4 (0-indexed)
+  if (motorNum < 0 || motorNum >= 5) return;
+  
+  const MotorConfig& config = MOTOR_CONFIGS[motorNum];
+  
+  if (direction == 1) {
+    digitalWrite(config.pinForward, HIGH);
+    digitalWrite(config.pinBackward, LOW);
+  } else if (direction == -1) {
+    digitalWrite(config.pinForward, LOW);
+    digitalWrite(config.pinBackward, HIGH);
+  } else {
+    digitalWrite(config.pinForward, LOW);
+    digitalWrite(config.pinBackward, LOW);
   }
 }
 
 void startMotorRamp(int motorNum, int direction, int speed) {
   // direction: 1=forward, -1=backward
-  setMotorDirection(motorNum, direction);
+  // motorNum: 1-5 (1-indexed for compatibility)
+  int idx = motorNum - 1;  // Convert to 0-indexed
   
-  if (motorNum == 1 && !motor1.isActive) {
-    motor1.targetSpeed = speed;
-    motor1.startTime = millis();
-    motor1.isActive = true;
-    motor1.currentSpeed = 0;
-  } else if (motorNum == 2 && !motor2.isActive) {
-    motor2.targetSpeed = speed;
-    motor2.startTime = millis();
-    motor2.isActive = true;
-    motor2.currentSpeed = 0;
-  } else if (motorNum == 3 && !motor3.isActive) {  // rope
-    motor3.targetSpeed = speed;
-    motor3.startTime = millis();
-    motor3.isActive = true;
-    motor3.currentSpeed = 0;
-  } else if (motorNum == 4 && !motor4.isActive) {  // comb
-    motor4.targetSpeed = speed;
-    motor4.startTime = millis();
-    motor4.isActive = true;
-    motor4.currentSpeed = 0;
-  } else if (motorNum == 5 && !motor5.isActive) {  // turn
-    motor5.targetSpeed = speed;
-    motor5.startTime = millis();
-    motor5.isActive = true;
-    motor5.currentSpeed = 0;
+  if (idx < 0 || idx >= 5) return;
+  
+  setMotorDirection(idx, direction);
+  
+  MotorState& motor = motors[idx];
+  if (!motor.isActive) {
+    motor.targetSpeed = speed;
+    motor.startTime = millis();
+    motor.isActive = true;
+    motor.currentSpeed = 0;
   }
 }
 
-void moveForward() {
-  startMotorRamp(1, 1, 255);  // Motor 1: forward, 100%
-  startMotorRamp(2, 1, 255);  // Motor 2: forward, 100%
+// ===== HELPER FUNCTION FOR LED MATRIX =====
+void displayBitmap(uint8_t bitmap[][MAX_X]) {
   matrix.clear();
-  matrix.renderBitmap(FORWARD, MAX_Y, MAX_X);
+  matrix.renderBitmap(bitmap, MAX_Y, MAX_X);
+}
+
+// ===== MOVEMENT FUNCTIONS =====
+void moveForward() {
+  startMotorRamp(1, 1, MAX_PWM);  // Motor 1: forward, 100%
+  startMotorRamp(2, 1, MAX_PWM);  // Motor 2: forward, 100%
+  displayBitmap(FORWARD);
 }
 
 void moveBackward() {
-  startMotorRamp(1, -1, 255);  // Motor 1: backward, 100%
-  startMotorRamp(2, -1, 255);  // Motor 2: backward, 100%
-  matrix.clear();
-  matrix.renderBitmap(BACKWARD, MAX_Y, MAX_X);
+  startMotorRamp(1, -1, MAX_PWM);  // Motor 1: backward, 100%
+  startMotorRamp(2, -1, MAX_PWM);  // Motor 2: backward, 100%
+  displayBitmap(BACKWARD);
 }
 
 void moveLeft() {
-  startMotorRamp(1, -1, 255);  // Motor 1 (levý): backward, 100%
-  startMotorRamp(2, 1, 255);   // Motor 2 (pravý): forward, 100%
-  matrix.clear();
-  matrix.renderBitmap(LEFT, MAX_Y, MAX_X);
+  startMotorRamp(1, 1, MAX_PWM);  // Motor 1 (levý): backward, 100%
+  startMotorRamp(2, -1, MAX_PWM);   // Motor 2 (pravý): forward, 100%
+  displayBitmap(LEFT);
 }
 
 void moveRight() {
-  startMotorRamp(1, 1, 255);   // Motor 1 (levý): forward, 100%
-  startMotorRamp(2, -1, 255);  // Motor 2 (pravý): backward, 100%
-  matrix.clear();
-  matrix.renderBitmap(RIGHT, MAX_Y, MAX_X);
+  startMotorRamp(1, -1, MAX_PWM);   // Motor 1 (levý): forward, 100%
+  startMotorRamp(2, 1, MAX_PWM);  // Motor 2 (pravý): backward, 100%
+  displayBitmap(RIGHT);
 }
 
 void moveRopeOut() {
-  startMotorRamp(3, 1, 255);  // Motor 3: extend rope, 100%
-  matrix.clear();
-  matrix.renderBitmap(ROPE_OUT, MAX_Y, MAX_X);
+  startMotorRamp(3, 1, MAX_PWM);  // Motor 3: extend rope, 100%
+  displayBitmap(ROPE_OUT);
 }
 
 void moveRopeIn() {
-  startMotorRamp(3, -1, 255);  // Motor 3: retract rope, 100%
-  matrix.clear();
-  matrix.renderBitmap(ROPE_IN, MAX_Y, MAX_X);
+  startMotorRamp(3, -1, MAX_PWM);  // Motor 3: retract rope, 100%
+  displayBitmap(ROPE_IN);
 }
 
 void moveCombOut() {
-  startMotorRamp(4, 1, 255);  // Motor 4: extend comb, 100%
-  matrix.clear();
-  matrix.renderBitmap(COMB_OUT, MAX_Y, MAX_X);
+  startMotorRamp(4, 1, MAX_PWM);  // Motor 4: extend comb, 100%
+  displayBitmap(COMB_OUT);
 }
 
 void moveCombIn() {
-  startMotorRamp(4, -1, 255);  // Motor 4: retract comb, 100%
-  matrix.clear();
-  matrix.renderBitmap(COMB_IN, MAX_Y, MAX_X);
+  startMotorRamp(4, -1, MAX_PWM);  // Motor 4: retract comb, 100%
+  displayBitmap(COMB_IN);
 }
 
 void turnLeft() {
-  startMotorRamp(5, -1, 255);  // Motor 5: turn left, 100%
-  matrix.clear();
-  matrix.renderBitmap(TURN_LEFT, MAX_Y, MAX_X);
+  startMotorRamp(5, -1, MAX_PWM);  // Motor 5: turn left, 100%
+  displayBitmap(TURN_LEFT);
 }
 
 void turnRight() {
-  startMotorRamp(5, 1, 255);   // Motor 5: turn right, 100%
-  matrix.clear();
-  matrix.renderBitmap(TURN_RIGHT, MAX_Y, MAX_X);
+  startMotorRamp(5, 1, MAX_PWM);   // Motor 5: turn right, 100%
+  displayBitmap(TURN_RIGHT);
 }
 
 void spoon_function(int open) {
   if (open == 1) {
     spoonServo.write(SPOON_OPEN_POS);
-    matrix.clear();
-    matrix.renderBitmap(SO, MAX_Y, MAX_X);
+    displayBitmap(SO);
   } else {
     spoonServo.write(SPOON_CLOSED_POS);
-    matrix.clear();
-    matrix.renderBitmap(SC, MAX_Y, MAX_X);
+    displayBitmap(SC);
   }
 }
 
 void L1_function() {
-  matrix.clear();
-  matrix.renderBitmap(L1, MAX_Y, MAX_X);
+  displayBitmap(L1);
 }
 
 void L2_function() {
-  matrix.clear();
-  matrix.renderBitmap(L2, MAX_Y, MAX_X);
+  displayBitmap(L2);
 }
 
 void L3_function() {
-  matrix.clear();
-  matrix.renderBitmap(L3, MAX_Y, MAX_X);
+  displayBitmap(L3);
 }
 
 void processCommand(const String& cmd) {
@@ -434,26 +296,13 @@ void setup() {
 
   Serial.begin(115200);
 
-  // Initialize H-Bridge 1 (track motors)
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(ENA, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
-  pinMode(ENB, OUTPUT);
-
-  // Initialize H-Bridge 2 (rope & comb motors)
-  pinMode(IN5, OUTPUT);
-  pinMode(IN6, OUTPUT);
-  pinMode(ENC, OUTPUT);
-  pinMode(IN7, OUTPUT);
-  pinMode(IN8, OUTPUT);
-  pinMode(END, OUTPUT);
-
-  // Initialize H-Bridge 3 (turn motor)
-  pinMode(IN9, OUTPUT);
-  pinMode(IN10, OUTPUT);
-  pinMode(ENE, OUTPUT);
+  // Initialize all motor pins
+  for (int i = 0; i < 5; i++) {
+    const MotorConfig& config = MOTOR_CONFIGS[i];
+    pinMode(config.pinForward, OUTPUT);
+    pinMode(config.pinBackward, OUTPUT);
+    pinMode(config.pinPWM, OUTPUT);
+  }
 
   // Initialize spoon servo
   spoonServo.attach(SPOON_SERVO_PIN);
