@@ -60,6 +60,10 @@ const unsigned long WATCHDOG_TIMEOUT = 400; // ms
 int horizontalAngleA0 = 0;  // Pin A0 - horizontal
 int verticalAngleA1 = 0;  // Pin A1 - vertical
 
+// ===== HORIZONTAL ANGLE LIMITS =====
+const int HORIZONTAL_LEFT_LIMIT = 250;   // Levá krajní hodnota (0-1023)
+const int HORIZONTAL_RIGHT_LIMIT = 600;  // Pravá krajní hodnota (0-1023)
+
 void readAnalogInputs() {
   horizontalAngleA0 = analogRead(A0);
   verticalAngleA1 = analogRead(A1);
@@ -195,11 +199,23 @@ void moveCombIn() {
 }
 
 void turnLeft() {
+  // Kontrola levé krajní hodnoty - blokovat pohyb, pokud je překročena
+  if (horizontalAngleA0 <= HORIZONTAL_LEFT_LIMIT) {
+    Serial.println("Turn left blocked - left limit reached");
+    emergencyStop();
+    return;
+  }
   startMotorRamp(5, -1, MAX_PWM);  // Motor 5: turn left, 100%
   displayBitmap(TURN_LEFT);
 }
 
 void turnRight() {
+  // Kontrola pravé krajní hodnoty - blokovat pohyb, pokud je překročena
+  if (horizontalAngleA0 >= HORIZONTAL_RIGHT_LIMIT) {
+    Serial.println("Turn right blocked - right limit reached");
+    emergencyStop();
+    return;
+  }
   startMotorRamp(5, 1, MAX_PWM);   // Motor 5: turn right, 100%
   displayBitmap(TURN_RIGHT);
 }
