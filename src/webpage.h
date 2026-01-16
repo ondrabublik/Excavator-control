@@ -114,22 +114,28 @@ function momentary(cmd) {
 
 <div class="container">
   <button class="orange"
-    ontouchstart="startContinuous('rope_out')" ontouchend="stopContinuous()">rope out</button>
+    ontouchstart="startContinuous('rope_out')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('rope_out')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">rope out</button>
 
   <button class="blue"
-    ontouchstart="startContinuous('comb_out')" ontouchend="stopContinuous()">comb out</button>
+    ontouchstart="startContinuous('comb_out')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('comb_out')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">comb out</button>
 
   <button class="orange"
-    ontouchstart="startContinuous('rope_in')" ontouchend="stopContinuous()">rope in</button>
+    ontouchstart="startContinuous('rope_in')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('rope_in')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">rope in</button>
 
   <button class="blue"
-    ontouchstart="startContinuous('comb_in')" ontouchend="stopContinuous()">comb in</button>
+    ontouchstart="startContinuous('comb_in')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('comb_in')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">comb in</button>
 
   <button class="green"
-    ontouchstart="startContinuous('turn_left')" ontouchend="stopContinuous()">turn left</button>
+    ontouchstart="startContinuous('turn_left')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('turn_left')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">turn left</button>
 
   <button class="green"
-    ontouchstart="startContinuous('turn_right')" ontouchend="stopContinuous()">turn right</button>
+    ontouchstart="startContinuous('turn_right')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('turn_right')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">turn right</button>
 
   <button class="black" onclick="momentary('spoon_open')">spoon open</button>
   <button class="black" onclick="momentary('spoon_close')">spoon close</button>
@@ -138,19 +144,23 @@ function momentary(cmd) {
 <div class="arrows">
   <div></div>
   <button class="arrow-btn"
-    ontouchstart="startContinuous('forward')" ontouchend="stopContinuous()">&#8593;</button>
+    ontouchstart="startContinuous('forward')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('forward')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">&#8593;</button>
   <div></div>
 
   <button class="arrow-btn"
-    ontouchstart="startContinuous('left')" ontouchend="stopContinuous()">&#8592;</button>
+    ontouchstart="startContinuous('left')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('left')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">&#8592;</button>
   <div></div>
 
   <button class="arrow-btn"
-    ontouchstart="startContinuous('right')" ontouchend="stopContinuous()">&#8594;</button>
+    ontouchstart="startContinuous('right')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('right')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">&#8594;</button>
 
   <div></div>
   <button class="arrow-btn"
-    ontouchstart="startContinuous('back')" ontouchend="stopContinuous()">&#8595;</button>
+    ontouchstart="startContinuous('back')" ontouchend="stopContinuous()"
+    onmousedown="startContinuous('back')" onmouseup="stopContinuous()" onmouseleave="stopContinuous()">&#8595;</button>
   <div></div>
 </div>
 
