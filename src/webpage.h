@@ -165,9 +165,9 @@ function momentary(cmd) {
 </div>
 
 <div class="lights">
-  <button onclick="momentary('L1')">L1</button>
-  <button onclick="momentary('L2')">L2</button>
-  <button onclick="momentary('L3')">L3</button>
+  <button onclick="momentary('L1')">P1</button>
+  <button onclick="momentary('L2')">P2</button>
+  <button onclick="momentary('L3')">P3</button>
 </div>
 
 </body>

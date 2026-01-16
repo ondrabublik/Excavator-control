@@ -61,8 +61,8 @@ int horizontalAngleA0 = 0;  // Pin A0 - horizontal
 int verticalAngleA1 = 0;  // Pin A1 - vertical
 
 // ===== HORIZONTAL ANGLE LIMITS =====
-const int HORIZONTAL_LEFT_LIMIT = 250;   // Levá krajní hodnota (0-1023)
-const int HORIZONTAL_RIGHT_LIMIT = 600;  // Pravá krajní hodnota (0-1023)
+const int HORIZONTAL_LEFT_LIMIT = 200;   // Levá krajní hodnota (0-1023)
+const int HORIZONTAL_RIGHT_LIMIT = 660;  // Pravá krajní hodnota (0-1023)
 
 // ===== VERTICAL ANGLE LIMITS =====
 const int VERTICAL_DOWN_LIMIT = 410;   // Dolní krajní hodnota (0-1023) - blokuje rope in
@@ -282,8 +282,128 @@ void L1_function() {
   delay(300);
 }
 
+void turnToHorizontalAngle(int targetAngle) {
+  // Tolerance pro dosažení cílové hodnoty
+  const int TOLERANCE = 8;
+  int currentAngle = 0;
+  int angleDifference = 0;
+  int previousDifference = 0;
+  
+  // Cyklus dokud nedosáhneme požadované hodnoty
+  while (true) {
+    // Přečíst aktuální hodnotu
+    currentAngle = analogRead(A0);
+    previousDifference = angleDifference;
+    angleDifference = currentAngle - targetAngle;
+
+    // Kontrola krajních limitů
+    if (currentAngle <= HORIZONTAL_LEFT_LIMIT || currentAngle >= HORIZONTAL_RIGHT_LIMIT) {
+      emergencyStop();
+      return;
+    }
+    
+    // Pokud jsme dosáhli požadované hodnoty (v toleranci), zastavit
+    if (abs(angleDifference) <= TOLERANCE) {
+      emergencyStop();
+      return;
+    }
+    
+    // Detekce přetáčení (změna znaménka) - zabránění kmitání
+    if (previousDifference != 0 && 
+        ((previousDifference > 0 && angleDifference < 0) || 
+         (previousDifference < 0 && angleDifference > 0))) {
+      // Přetáhli jsme cíl - zastavit
+      emergencyStop();
+      return;
+    }
+    
+    // Rozhodnout směr otáčení
+    if (angleDifference > TOLERANCE) {
+      // Aktuální hodnota je větší než cílová -> otáčet vlevo (snížit hodnotu)
+      turnLeft();
+    } else if (angleDifference < -TOLERANCE) {
+      // Aktuální hodnota je menší než cílová -> otáčet vpravo (zvýšit hodnotu)
+      turnRight();
+    }
+    
+    // Krátká pauza pro aktualizaci hodnoty
+    delay(50);
+  }
+}
+
+void turnToVerticalAngle(int targetAngle) {
+  // Tolerance pro dosažení cílové hodnoty
+  const int TOLERANCE = 8;
+  int currentAngle = 0;
+  int angleDifference = 0;
+  int previousDifference = 0;
+  
+  // Cyklus dokud nedosáhneme požadované hodnoty
+  while (true) {
+    // Přečíst aktuální hodnotu
+    currentAngle = analogRead(A1);
+    previousDifference = angleDifference;
+    angleDifference = currentAngle - targetAngle;
+
+    // Kontrola krajních limitů
+    if (currentAngle <= VERTICAL_DOWN_LIMIT || currentAngle >= VERTICAL_UP_LIMIT) {
+      emergencyStop();
+      return;
+    }
+    
+    // Pokud jsme dosáhli požadované hodnoty (v toleranci), zastavit
+    if (abs(angleDifference) <= TOLERANCE) {
+      emergencyStop();
+      return;
+    }
+    
+    // Detekce přetáčení (změna znaménka) - zabránění kmitání
+    if (previousDifference != 0 && 
+        ((previousDifference > 0 && angleDifference < 0) || 
+         (previousDifference < 0 && angleDifference > 0))) {
+      // Přetáhli jsme cíl - zastavit
+      emergencyStop();
+      return;
+    }
+    
+    // Rozhodnout směr pohybu lana
+    if (angleDifference > TOLERANCE) {
+      // Aktuální hodnota je větší než cílová -> stáhnout lano (snížit hodnotu)
+      moveRopeIn();
+    } else if (angleDifference < -TOLERANCE) {
+      // Aktuální hodnota je menší než cílová -> vytáhnout lano (zvýšit hodnotu)
+      moveRopeOut();
+    }
+    
+    // Krátká pauza pro aktualizaci hodnoty
+    delay(50);
+  }
+}
+
 void L2_function() {
   displayBitmap(L2);
+  int centerHorizontalPosition = (HORIZONTAL_LEFT_LIMIT + HORIZONTAL_RIGHT_LIMIT) / 2;
+  int horizontalRange = (HORIZONTAL_RIGHT_LIMIT - HORIZONTAL_LEFT_LIMIT) / 2;
+  int centerVerticalPosition = (VERTICAL_DOWN_LIMIT + VERTICAL_UP_LIMIT) / 2;
+  int verticalRange = (VERTICAL_UP_LIMIT - VERTICAL_DOWN_LIMIT) / 2;
+  // init position
+  turnToVerticalAngle(centerVerticalPosition + 2*verticalRange/3);
+  turnToHorizontalAngle(centerHorizontalPosition);
+  delay(4000);
+
+  turnToHorizontalAngle(centerHorizontalPosition - horizontalRange / 2);
+  delay(1000);
+  turnToVerticalAngle(centerVerticalPosition - 2*verticalRange/3);
+  delay(1000);
+  turnToHorizontalAngle(centerHorizontalPosition + 2 * horizontalRange / 3);
+  delay(1000);
+  spoon_function(1);
+  delay(2000);
+  spoon_function(0);
+  delay(2000);
+  turnToHorizontalAngle(centerHorizontalPosition);
+  delay(1000);
+  turnToVerticalAngle(centerVerticalPosition + 2*verticalRange/3);
 }
 
 void L3_function() {
