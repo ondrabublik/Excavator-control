@@ -64,6 +64,10 @@ int verticalAngleA1 = 0;  // Pin A1 - vertical
 const int HORIZONTAL_LEFT_LIMIT = 250;   // Levá krajní hodnota (0-1023)
 const int HORIZONTAL_RIGHT_LIMIT = 600;  // Pravá krajní hodnota (0-1023)
 
+// ===== VERTICAL ANGLE LIMITS =====
+const int VERTICAL_DOWN_LIMIT = 410;   // Dolní krajní hodnota (0-1023) - blokuje rope in
+const int VERTICAL_UP_LIMIT = 590;     // Horní krajní hodnota (0-1023) - blokuje rope out
+
 void readAnalogInputs() {
   horizontalAngleA0 = analogRead(A0);
   verticalAngleA1 = analogRead(A1);
@@ -179,11 +183,23 @@ void moveRight() {
 }
 
 void moveRopeOut() {
+  // Kontrola horní krajní hodnoty - blokovat pohyb, pokud je překročena
+  if (verticalAngleA1 >= VERTICAL_UP_LIMIT) {
+    Serial.println("Rope out blocked - upper limit reached");
+    emergencyStop();
+    return;
+  }
   startMotorRamp(3, 1, MAX_PWM);  // Motor 3: extend rope, 100%
   displayBitmap(ROPE_OUT);
 }
 
 void moveRopeIn() {
+  // Kontrola dolní krajní hodnoty - blokovat pohyb, pokud je překročena
+  if (verticalAngleA1 <= VERTICAL_DOWN_LIMIT) {
+    Serial.println("Rope in blocked - lower limit reached");
+    emergencyStop();
+    return;
+  }
   startMotorRamp(3, -1, MAX_PWM);  // Motor 3: retract rope, 100%
   displayBitmap(ROPE_IN);
 }
@@ -232,6 +248,38 @@ void spoon_function(int open) {
 
 void L1_function() {
   displayBitmap(L1);
+  
+  // Spustit rope in
+  moveRopeIn();
+  moveCombOut();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+  
+  moveCombIn();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+
+  turnRight();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+
+  spoon_function(1);
+  delay(2000);
+  spoon_function(0);
+  delay(500);
+
+  turnLeft();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+
+  moveRopeOut();
+  delay(2000);
+  emergencyStop();
+  delay(300);
 }
 
 void L2_function() {
