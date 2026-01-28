@@ -246,42 +246,6 @@ void spoon_function(int open) {
   }
 }
 
-void L1_function() {
-  displayBitmap(L1);
-  
-  // Spustit rope in
-  moveRopeIn();
-  moveCombOut();
-  delay(2000);
-  emergencyStop();
-  delay(300);
-  
-  moveCombIn();
-  delay(2000);
-  emergencyStop();
-  delay(300);
-
-  turnRight();
-  delay(2000);
-  emergencyStop();
-  delay(300);
-
-  spoon_function(1);
-  delay(2000);
-  spoon_function(0);
-  delay(500);
-
-  turnLeft();
-  delay(2000);
-  emergencyStop();
-  delay(300);
-
-  moveRopeOut();
-  delay(2000);
-  emergencyStop();
-  delay(300);
-}
-
 void turnToHorizontalAngle(int targetAngle) {
   // Tolerance pro dosažení cílové hodnoty
   const int TOLERANCE = 8;
@@ -380,8 +344,44 @@ void turnToVerticalAngle(int targetAngle) {
   }
 }
 
+void L1_function() {
+  displayBitmap(P1);
+  
+  // Spustit rope in
+  moveRopeIn();
+  moveCombOut();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+  
+  moveCombIn();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+
+  turnRight();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+
+  spoon_function(1);
+  delay(2000);
+  spoon_function(0);
+  delay(500);
+
+  turnLeft();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+
+  moveRopeOut();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+}
+
 void L2_function() {
-  displayBitmap(L2);
+  displayBitmap(P2);
   int centerHorizontalPosition = (HORIZONTAL_LEFT_LIMIT + HORIZONTAL_RIGHT_LIMIT) / 2;
   int horizontalRange = (HORIZONTAL_RIGHT_LIMIT - HORIZONTAL_LEFT_LIMIT) / 2;
   int centerVerticalPosition = (VERTICAL_DOWN_LIMIT + VERTICAL_UP_LIMIT) / 2;
@@ -407,8 +407,39 @@ void L2_function() {
 }
 
 void L3_function() {
-  displayBitmap(L3);
+  displayBitmap(P3);
+  int centerHorizontalPosition = (HORIZONTAL_LEFT_LIMIT + HORIZONTAL_RIGHT_LIMIT) / 2;
+  int horizontalRange = (HORIZONTAL_RIGHT_LIMIT - HORIZONTAL_LEFT_LIMIT) / 2;
+  int centerVerticalPosition = (VERTICAL_DOWN_LIMIT + VERTICAL_UP_LIMIT) / 2;
+  int verticalRange = (VERTICAL_UP_LIMIT - VERTICAL_DOWN_LIMIT) / 2;
+  // init position
+  turnToVerticalAngle(centerVerticalPosition + 2*verticalRange/3);
+  turnToHorizontalAngle(centerHorizontalPosition);
+  delay(4000);
+  
+  turnToHorizontalAngle(centerHorizontalPosition - horizontalRange / 2);
+  delay(1000);
+  moveCombOut();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+  turnToVerticalAngle(centerVerticalPosition - 2*verticalRange/3);
+  delay(1000);
+  moveCombIn();
+  delay(2000);
+  emergencyStop();
+  delay(300);
+  turnToHorizontalAngle(centerHorizontalPosition + 2 * horizontalRange / 3);
+  delay(1000);
+  spoon_function(1);
+  delay(2000);
+  spoon_function(0);
+  delay(2000);
+  turnToHorizontalAngle(centerHorizontalPosition);
+  delay(1000);
+  turnToVerticalAngle(centerVerticalPosition + 2*verticalRange/3);
 }
+
 
 void processCommand(const String& cmd) {
   Serial.println(cmd);
