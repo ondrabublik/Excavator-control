@@ -344,7 +344,7 @@ void turnToVerticalAngle(int targetAngle) {
   }
 }
 
-void L1_function() {
+void P1_function() {
   displayBitmap(P1);
   
   // Spustit rope in
@@ -380,7 +380,7 @@ void L1_function() {
   delay(300);
 }
 
-void L2_function() {
+void P2_function() {
   displayBitmap(P2);
   int centerHorizontalPosition = (HORIZONTAL_LEFT_LIMIT + HORIZONTAL_RIGHT_LIMIT) / 2;
   int horizontalRange = (HORIZONTAL_RIGHT_LIMIT - HORIZONTAL_LEFT_LIMIT) / 2;
@@ -406,7 +406,7 @@ void L2_function() {
   turnToVerticalAngle(centerVerticalPosition + 2*verticalRange/3);
 }
 
-void L3_function() {
+void P3_function() {
   displayBitmap(P3);
   int centerHorizontalPosition = (HORIZONTAL_LEFT_LIMIT + HORIZONTAL_RIGHT_LIMIT) / 2;
   int horizontalRange = (HORIZONTAL_RIGHT_LIMIT - HORIZONTAL_LEFT_LIMIT) / 2;
@@ -460,9 +460,9 @@ void processCommand(const String& cmd) {
   else if (cmd == "right")   { moveRight(); }
   else if (cmd == "spoon_open")  { spoon_function(1); }
   else if (cmd == "spoon_close") { spoon_function(0); }
-  else if (cmd == "L1") { L1_function(); }
-  else if (cmd == "L2") { L2_function(); }
-  else if (cmd == "L3") { L3_function(); }
+  else if (cmd == "P1") { P1_function(); }
+  else if (cmd == "P2") { P2_function(); }
+  else if (cmd == "P3") { P3_function(); }
 }
 
 void handleCommand(const String& req) {
